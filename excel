@@ -1,0 +1,73 @@
+import io.cucumber.java.After;
+import io.cucumber.java.Before;
+import io.cucumber.java.Scenario;
+import io.cucumber.java.Status;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+import java.io.FileOutputStream;
+import java.io.IOException;
+
+public class ExcelWriterHooks {
+
+    private Workbook workbook;
+    private Sheet currentSheet;
+    private int rowNum;
+
+    @Before(order = 0)
+    public void setup() {
+        workbook = new XSSFWorkbook();
+    }
+
+    @After(order = 0)
+    public void tearDown() {
+        closeWorkbook();
+    }
+
+    @After(order = 10)
+    public void writeDataToExcel(Scenario scenario) {
+        if (currentSheet != null && scenario.getStatus() != Status.FAILED) {
+            saveWorkbookToFile(scenario.getName() + ".xlsx");
+        }
+    }
+
+    @Before(order = 20)
+    public void createNewSheet(Scenario scenario) {
+        if (scenario.getStatus() != Status.FAILED) {
+            String sheetName = "Data_Row_" + ++rowNum;
+            currentSheet = workbook.createSheet(sheetName);
+        }
+    }
+
+    private void writeToExcel(String name, String age, String city) {
+        Row row = currentSheet.createRow(rowNum++);
+
+        Cell cellName = row.createCell(0);
+        cellName.setCellValue(name);
+
+        Cell cellAge = row.createCell(1);
+        cellAge.setCellValue(age);
+
+        Cell cellCity = row.createCell(2);
+        cellCity.setCellValue(city);
+    }
+
+    private void saveWorkbookToFile(String fileName) {
+        try (FileOutputStream fileOut = new FileOutputStream(fileName)) {
+            workbook.write(fileOut);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void closeWorkbook() {
+        try {
+            if (workbook != null) {
+                workbook.close();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+=============================================================================
