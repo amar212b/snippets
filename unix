@@ -1,0 +1,124 @@
+import com.jcraft.jsch.*;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+
+public class SecureUnixDataFetcher {
+
+    public static void main(String[] args) {
+        // Replace these variables with your actual server information
+        String host = "your-server-hostname";
+        String username = "your-username";
+        String encryptedPassword = "your-encrypted-password"; // Use a password encoder and store securely
+        String command = "cat /path/to/unix/file.txt";
+
+        try {
+            // Decrypt the password (this is just a basic example, use a secure method in production)
+            String password = decryptPassword(encryptedPassword);
+
+            // Create JSch session
+            JSch jsch = new JSch();
+            Session session = jsch.getSession(username, host, 22);
+            session.setConfig("StrictHostKeyChecking", "no");
+            session.setPassword(password);
+            session.connect();
+
+            // Execute command
+            Channel channel = session.openChannel("exec");
+            ((ChannelExec) channel).setCommand(command);
+            channel.setInputStream(null);
+            ((ChannelExec) channel).setErrStream(System.err);
+
+            // Get output stream
+            InputStream in = channel.getInputStream();
+
+            // Connect and read the data efficiently
+            channel.connect();
+            String result = readInputStream(in);
+
+            // Disconnect
+            channel.disconnect();
+            session.disconnect();
+
+            // Print or process the fetched data
+            System.out.println(result);
+
+            // Now you can write 'result' to a file or process it further as needed
+        } catch (JSchException | IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static String decryptPassword(String encryptedPassword) {
+        // Basic decoding for demonstration, use a secure decoding method in production
+        byte[] decodedBytes = Base64.getDecoder().decode(encryptedPassword);
+        return new String(decodedBytes, StandardCharsets.UTF_8);
+    }
+
+    private static String readInputStream(InputStream in) throws IOException {
+        StringBuilder result = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
+            char[] buffer = new char[8192]; // Adjust the buffer size based on your needs
+            int charsRead;
+            while ((charsRead = reader.read(buffer)) != -1) {
+                result.append(buffer, 0, charsRead);
+            }
+        }
+        return result.toString();
+    }
+}
+===============================================================================
+import org.apache.commons.lang3.StringUtils;
+
+public class GenericDataFetcher<T> {
+
+    private static final String USERNAME = System.getenv("USERNAME");
+    private static final String ENCRYPTED_PASSWORD = System.getenv("ENCRYPTED_PASSWORD");
+
+    // Use a generic interface or abstract class for connections (replace as needed)
+    public interface Connection<H> {
+        // Methods for establishing, closing, and executing commands on the connection
+        void connect(H host, String username, String password) throws Exception;
+        void close() throws Exception;
+        T executeCommand(String command) throws Exception;
+    }
+
+    private final Connection<T> connectionFactory;
+
+    public GenericDataFetcher(Connection<T> connectionFactory) {
+        this.connectionFactory = connectionFactory;
+    }
+
+    // ... other fields and methods
+
+    public Map<String, String> fetchData(String host, String command) throws Exception {
+        String password = decryptPassword(ENCRYPTED_PASSWORD);
+        T connection = null;
+        try {
+            connection = connectionFactory.connect(host, USERNAME, password);
+            String output = connection.executeCommand(command);
+            return parseOutput(output);
+        } finally {
+            if (connection != null) {
+                connection.close();
+            }
+        }
+    }
+
+    // ... methods for decryption, command execution, and output parsing
+
+    private String decryptPassword(String encryptedPassword) throws Exception {
+        // Replace with your actual decryption logic (e.g., using a decryption library)
+        throw new UnsupportedOperationException("Not implemented. Replace with secure decryption logic.");
+    }
+
+    private Map<String, String> parseOutput(String output) {
+        // Implement logic to parse the output and extract desired data into a Map
+        // ... (your parsing logic here)
+        return new HashMap<>(); // Replace with your parsed data
+    }
+}
