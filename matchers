@@ -213,3 +213,95 @@ public class MyStepDefs {
     @Then("the maps should match")
     public void verifyMapsMatch(Map<String, String> actualMap) {
         assertThat(actualMap, ImprovedMapMatcher.matchesExactly(expectedMap
+
+=============================================================================================
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeMatcher;
+
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+
+public class MapMatcher {
+
+    public static <K, V> void assertMapMatches(Map<K, V> actualMap, Map<K, V> expectedMap, Matcher<? super Map<K, V>> matcher) {
+        assertThat(actualMap, matcher);
+    }
+
+    public static <K, V> Matcher<Map<K, V>> isMapContaining(Map<K, V> expectedMap) {
+        return createMapMatcher("containing", expectedMap);
+    }
+
+    public static <K, V> Matcher<Map<K, V>> isMapContainingInAnyOrder(Map<K, V> expectedMap) {
+        return createMapMatcher("containing in any order", expectedMap);
+    }
+
+    public static <K, V> Matcher<Map<K, V>> isMapContainingKey(K key) {
+        return createMapMatcher("containing key", Map.of(key, null));
+    }
+
+    public static <K, V> Matcher<Map<K, V>> isMapContainingValue(V value) {
+        return createMapMatcher("containing value", Map.of(null, value));
+    }
+
+    public static <K, V> Matcher<Map<K, V>> isMapSubsetOf(Map<K, V> expectedMap) {
+        return createMapMatcher("being a subset of", expectedMap);
+    }
+
+    private static <K, V> Matcher<Map<K, V>> createMapMatcher(String description, Map<K, V> expectedMap) {
+        return new TypeSafeMatcher<Map<K, V>>() {
+            @Override
+            protected boolean matchesSafely(Map<K, V> actualMap) {
+                Set<Map.Entry<K, V>> actualEntries = actualMap.entrySet();
+                Set<Map.Entry<K, V>> expectedEntries = expectedMap.entrySet();
+
+                return actualEntries.containsAll(expectedEntries);
+            }
+
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("a map ").appendText(description).appendValue(expectedMap);
+            }
+
+            @Override
+            protected void describeMismatchSafely(Map<K, V> actualMap, Description mismatchDescription) {
+                Set<Map.Entry<K, V>> expectedEntries = expectedMap.entrySet();
+                Set<Map.Entry<K, V>> actualEntries = actualMap.entrySet();
+
+                mismatchDescription.appendText("map was ").appendValue(actualMap).appendText(", which does not match the expected map ").appendValue(expectedMap);
+
+                // Check for missing entries in actual map
+                for (Map.Entry<K, V> expectedEntry : expectedEntries) {
+                    if (!actualEntries.contains(expectedEntry)) {
+                        mismatchDescription.appendText("\n\tMissing entry: ").appendValue(expectedEntry);
+                    }
+                }
+
+                // Check for unexpected entries in actual map
+                for (Map.Entry<K, V> actualEntry : actualEntries) {
+                    if (!expectedEntries.contains(actualEntry)) {
+                        mismatchDescription.appendText("\n\tUnexpected entry: ").appendValue(actualEntry);
+                    }
+                }
+            }
+        };
+    }
+
+    public static void main(String[] args) {
+        // Example usage
+        Map<String, Integer> actualMap = Map.of("one", 1, "two", 2, "three", 3);
+        Map<String, Integer> expectedMap = Map.of("one", 1, "two", 2);
+
+        // Assert that actualMap is a subset of expectedMap
+        assertMapMatches(actualMap, expectedMap, isMapSubsetOf(expectedMap));
+
+        // You can use other matchers as needed
+        assertMapMatches(actualMap, expectedMap, isMapContainingKey("one"));
+        assertMapMatches(actualMap, expectedMap, isMapContainingValue(2));
+        assertMapMatches(actualMap, expectedMap, isMapContaining(expectedMap));
+        assertMapMatches(actualMap, expectedMap, isMapContainingInAnyOrder(expectedMap));
+    }
+}
