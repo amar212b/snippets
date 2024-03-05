@@ -1,0 +1,215 @@
+import org.hamcrest.Matcher;
+
+import java.util.Map;
+
+public class MapMatcher<K, V> {
+
+    private final Map<K, Matcher<? super V>> expectedValues;
+
+    public MapMatcher(Map<K, Matcher<? super V>> expectedValues) {
+        this.expectedValues = expectedValues;
+    }
+
+    public boolean matches(Map<K, V> actualMap) {
+        for (Map.Entry<K, Matcher<? super V>> expectedEntry : expectedValues.entrySet()) {
+            K key = expectedEntry.getKey();
+            Matcher<? super V> expectedValueMatcher = expectedEntry.getValue();
+
+            if (!actualMap.containsKey(key) || !expectedValueMatcher.matches(actualMap.get(key))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // Helper method for creating a MapMatcher with "contains" logic
+    public static <K, V> MapMatcher<K, V> contains(Map<K, V> expectedValues) {
+        Map<K, Matcher<? super V>> matcherMap = expectedValues.entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, entry -> hasItem(entry.getValue())));
+        return new MapMatcher<>(matcherMap);
+    }
+}
+Map<String, String> expected = Map.of("name", "Alice", "age", "30");
+Map<String, String> actual = Map.of("name", "Alice", "age", "30+");
+
+// Exact matching
+assertThat(actual, new MapMatcher<>(expected)); // Passes
+
+// "Contains" matching
+assertThat(actual, MapMatcher.contains(expected)); // Also passes
+
+========================================================================================
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeMatcher;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+public class ImprovedMapMatcher<K, V> extends TypeSafeMatcher<Map<K, V>> {
+
+    private final Map<K, Matcher<? super V>> expectedValues;
+
+    public ImprovedMapMatcher(Map<K, Matcher<? super V>> expectedValues) {
+        this.expectedValues = expectedValues;
+    }
+
+    @Override
+    protected boolean matchesSafely(Map<K, V> actualMap) {
+        for (Map.Entry<K, Matcher<? super V>> expectedEntry : expectedValues.entrySet()) {
+            K key = expectedEntry.getKey();
+            Matcher<? super V> expectedValueMatcher = expectedEntry.getValue();
+
+            if (!actualMap.containsKey(key) || !expectedValueMatcher.matches(actualMap.get(key))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public void describeTo(Description description) {
+        description.appendText("a map with entries matching: ");
+        expectedValues.forEach((key, matcher) -> description.appendText(key + ": " + matcher, ", "));
+    }
+
+    @Override
+    protected void describeMismatchSafely(Map<K, V> actualMap, Description mismatchDescription) {
+        List<String> mismatches = expectedValues.entrySet().stream()
+                .filter(entry -> !entry.getValue().matches(actualMap.get(entry.getKey())))
+                .map(entry -> entry.getKey() + ": expected " + entry.getValue() + ", but was " + actualMap.get(entry.getKey()))
+                .collect(Collectors.toList());
+
+        if (!mismatches.isEmpty()) {
+            mismatchDescription.appendText("Maps don't match. Mismatches:\n");
+            mismatches.forEach(mismatch -> mismatchDescription.appendText("- " + mismatch + "\n"));
+        } else {
+            mismatchDescription.appendText("Maps don't contain expected keys or values.");
+        }
+    }
+
+    public static <K, V> ImprovedMapMatcher<K, V> matchesExactly(Map<K, V> expectedValues) {
+        return new ImprovedMapMatcher<>(expectedValues);
+    }
+
+    public static <K, V> ImprovedMapMatcher<K, V> containsValue(K key, String substring) {
+        return new ImprovedMapMatcher<>(Map.of(key, containsString(substring)));
+    }
+
+    public static <K, V> ImprovedMapMatcher<K, V> startsWithValue(K key, String prefix) {
+        return new ImprovedMapMatcher<>(Map.of(key, startsWith(prefix)));
+    }
+
+    // ... add other matcher methods for regular expressions as needed
+}
+@Given("a map with entries")
+public void createExpectedMap(DataTable dataTable) {
+    Map<String, String> expectedMap = dataTable.asMap(String.class, String.class);
+    // ... use expectedMap in your test logic
+}
+
+@Then("the maps should match")
+public void verifyMapsMatch(Map<String, String> actualMap) {
+    assertThat(actualMap, ImprovedMapMatcher.matchesExactly(expectedMap)); // Use appropriate matcher based on your needs
+}
+===================================================================================================
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeMatcher;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+public class ImprovedMapMatcher<K, V> extends TypeSafeMatcher<Map<K, V>> {
+
+    private final Map<K, Matcher<? super V>> expectedValues;
+
+    public ImprovedMapMatcher(Map<K, Matcher<? super V>> expectedValues) {
+        this.expectedValues = expectedValues;
+    }
+
+    @Override
+    protected boolean matchesSafely(Map<K, V> actualMap) {
+        for (Map.Entry<K, Matcher<? super V>> expectedEntry : expectedValues.entrySet()) {
+            K key = expectedEntry.getKey();
+            Matcher<? super V> expectedValueMatcher = expectedEntry.getValue();
+
+            if (!actualMap.containsKey(key) || !expectedValueMatcher.matches(actualMap.get(key))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public void describeTo(Description description) {
+        description.appendText("a map with entries matching: ");
+        expectedValues.forEach((key, matcher) -> description.appendText(key + ": " + matcher, ", "));
+    }
+
+    @Override
+    protected void describeMismatchSafely(Map<K, V> actualMap, Description mismatchDescription) {
+        List<String> mismatches = expectedValues.entrySet().stream()
+                .filter(entry -> !entry.getValue().matches(actualMap.get(entry.getKey())))
+                .map(entry -> formatMismatch(entry.getKey(), entry.getValue(), actualMap.get(entry.getKey())))
+                .collect(Collectors.toList());
+
+        if (!mismatches.isEmpty()) {
+            mismatchDescription.appendText("Maps don't match.\nMismatches:\n");
+            mismatches.forEach(mismatch -> mismatchDescription.appendText(mismatch + "\n"));
+        } else {
+            mismatchDescription.appendText("Maps don't contain expected keys or values.");
+        }
+    }
+
+    private String formatMismatch(K key, Matcher<? super V> expectedMatcher, V actualValue) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("| Key | Expected | Actual | Reason |\n");
+        sb.append("|---|---|---|---|");
+        sb.append("\n| ").append(key).append(" | ").append(expectedMatcher.describeMismatch(null, new Description.Stub())).append(" | ");
+        if (actualValue != null) {
+            sb.append(actualValue).append(" | ");
+        } else {
+            sb.append("Missing | ");
+        }
+        sb.append(expectedMatcher.getClass().getSimpleName().replace("Matcher", ""));
+        sb.append(" failed |");
+        return sb.toString();
+    }
+
+    public static <K, V> ImprovedMapMatcher<K, V> matchesExactly(Map<K, V> expectedValues) {
+        return new ImprovedMapMatcher<>(expectedValues);
+    }
+
+    public static <K, V> ImprovedMapMatcher<K, V> containsValue(K key, String substring) {
+        return new ImprovedMapMatcher<>(Map.of(key, containsString(substring)));
+    }
+
+    public static <K, V> ImprovedMapMatcher<K, V> startsWithValue(K key, String prefix) {
+        return new ImprovedMapMatcher<>(Map.of(key, startsWith(prefix)));
+    }
+
+    // ... add other matcher methods for regular expressions as needed
+}
+import io.cucumber.java.en.Given;
+import io.cucumber.java.en.Then;
+
+import java.util.HashMap;
+import java.util.Map;
+
+public class MyStepDefs {
+
+    private Map<String, String> expectedMap;
+
+    @Given("a map with entries")
+    public void createExpectedMap(DataTable dataTable) {
+        expectedMap = dataTable.asMap(String.class, String.class);
+    }
+
+    @Then("the maps should match")
+    public void verifyMapsMatch(Map<String, String> actualMap) {
+        assertThat(actualMap, ImprovedMapMatcher.matchesExactly(expectedMap
