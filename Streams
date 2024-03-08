@@ -36,3 +36,14 @@ Map<Integer, List<String>> resultMap = Arrays.stream(keyValuePairs)
        pair -> Integer.parseInt(pair.split("=")[0]),
        Collectors.mapping(pair -> pair.split("=")[1], Collectors.toList())
     ));
+====================
+String[] keyValuePairs = {"1\u0001A", "2\u0001B", "1\u0001C", "2\u0001D", "1\u0001E", "2\u0001F"}; // Key-value pairs with SOH delimiter
+
+Map<String, List<String>> resultMap = Arrays.stream(keyValuePairs)
+    .map(pair -> pair.split("\u0001", 2)) // Split by SOH, limit to 2 parts
+    .collect(Collectors.groupingBy(
+        pair -> pair[0], // Key is the first element (before SOH)
+        Collectors.mapping(pair -> pair[1], // Value is the second element (after SOH)
+                          Collectors.toList()),
+        LinkedHashMap::new // Use LinkedHashMap for order
+    ));
