@@ -47,3 +47,18 @@ Map<String, List<String>> resultMap = Arrays.stream(keyValuePairs)
                           Collectors.toList()),
         LinkedHashMap::new // Use LinkedHashMap for order
     ));
+===============================================================
+class ValueObject {
+  private List<String> values;
+
+  public ValueObject(List<String> values) {
+    this.values = values;
+  }
+
+  public List<String> getValues() {
+    return values;
+  }
+}
+
+Map<String, Object> objectMap = resultMap.entrySet().stream()
+    .collect(Collectors.toMap(entry -> entry.getKey(), entry -> new ValueObject(entry.getValue())));
