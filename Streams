@@ -1,0 +1,38 @@
+String[] keyValuePairs = {"1=A", "2=B", "1=C", "2=D", "1=E", "2=F"};
+
+Map<String, List<String>> resultMap = Arrays.stream(keyValuePairs)
+    .collect(Collectors.groupingBy(
+        pair -> pair.split("=")[0], // Extract key (string) directly
+        Collectors.toMap(pair -> pair.split("=")[1], value -> value, // Use toMap
+                        (oldValue, newValue) -> { oldValue.addAll(newValue); return oldValue; }, // Merge function
+                        LinkedHashMap::new // Use LinkedHashMap for order
+    )));
+
+=============================================================================
+
+
+Map<String, List<String>> resultMap = Arrays.stream(keyValuePairs)
+    .collect(Collectors.groupingBy(
+        pair -> pair.split("=")[0], // Extract key (string) directly
+        Collectors.mapping(pair -> pair.split("=")[1],
+                          Collectors.toList()),
+        LinkedHashMap::new
+    ));
+==========================================================================
+\String[] keyValuePairs = {"1=A", "2=B", "1=C", "2=D", "1=E", "2=F"};
+
+Map<Integer, List<String>> resultMap = Arrays.stream(keyValuePairs)
+    .collect(Collectors.groupingBy(
+        pair -> Integer.parseInt(pair.split("=")[0]), // Extract key (integer)
+        Collectors.mapping(pair -> pair.split("=")[1], // Extract value (string)
+                          Collectors.toList()), // Collect values into list
+        LinkedHashMap::new // Use LinkedHashMap to preserve insertion order
+    ));
+========================================================================
+String[] keyValuePairs = {"1=A", "2=B", "1=C", "2=D", "1=E", "2=F"};
+
+Map<Integer, List<String>> resultMap = Arrays.stream(keyValuePairs)
+    .collect(Collectors.groupingBy(
+       pair -> Integer.parseInt(pair.split("=")[0]),
+       Collectors.mapping(pair -> pair.split("=")[1], Collectors.toList())
+    ));
