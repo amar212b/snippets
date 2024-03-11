@@ -1,1 +1,254 @@
-S
+SeleniumFramework
+├── src
+│   ├── main
+│   │   ├── java
+│   │   │   ├── pages
+│   │   │   │   ├── HomePage.java
+│   │   │   │   ├── LoginPage.java
+│   │   │   │   └── ...
+│   │   │   ├── utils
+│   │   │   │   ├── DriverManager.java
+│   │   │   │   ├── ExcelUtils.java
+│   │   │   │   └── ...
+│   │   │   └── tests
+│   │   │       └── TestSuite.java
+└── pom.xml
+========================================================
+// LoginPage.java
+package pages;
+
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
+
+public class LoginPage {
+    private WebDriver driver;
+
+    private By usernameInput = By.id("username");
+    private By passwordInput = By.id("password");
+    private By loginButton = By.id("login-btn");
+
+    public LoginPage(WebDriver driver) {
+        this.driver = driver;
+    }
+
+    public void setUsername(String username) {
+        driver.findElement(usernameInput).sendKeys(username);
+    }
+
+    public void setPassword(String password) {
+        driver.findElement(passwordInput).sendKeys(password);
+    }
+
+    public void clickLogin() {
+        driver.findElement(loginButton).click();
+    }
+}
+=============================================================
+// DriverManager.java
+package utils;
+
+import io.github.bonigarcia.wdm.WebDriverManager;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.chrome.ChromeDriver;
+
+public class DriverManager {
+    public static WebDriver initializeDriver() {
+        WebDriverManager.chromedriver().setup();
+        return new ChromeDriver();
+    }
+}
+===============================================
+// TestLogin.java
+package tests;
+
+import org.openqa.selenium.WebDriver;
+import org.testng.annotations.AfterTest;
+import org.testng.annotations.BeforeTest;
+import org.testng.annotations.Test;
+import pages.LoginPage;
+import utils.DriverManager;
+
+public class TestLogin {
+    private WebDriver driver;
+    private LoginPage loginPage;
+
+    @BeforeTest
+    public void setUp() {
+        driver = DriverManager.initializeDriver();
+        loginPage = new LoginPage(driver);
+        driver.get("https://example.com/login");
+    }
+
+    @Test
+    public void testLogin() {
+        loginPage.setUsername("your_username");
+        loginPage.setPassword("your_password");
+        loginPage.clickLogin();
+        // Add assertions or further steps after login
+    }
+
+    @AfterTest
+    public void tearDown() {
+        if (driver != null) {
+            driver.quit();
+        }
+    }
+}
+====================================
+Generic
+
+// DriverManager.java
+package utils;
+
+import io.github.bonigarcia.wdm.WebDriverManager;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.chrome.ChromeDriver;
+
+public class DriverManager {
+    private static WebDriver driver;
+
+    public static WebDriver getDriver() {
+        if (driver == null) {
+            WebDriverManager.chromedriver().setup();
+            driver = new ChromeDriver();
+        }
+        return driver;
+    }
+
+    public static void quitDriver() {
+        if (driver != null) {
+            driver.quit();
+            driver = null;
+        }
+    }
+}
+===========================================
+This DriverManager class provides methods to initialize and quit the WebDriver instance. It ensures that only one instance of the WebDriver is created throughout the execution.
+
+Now, let's create another utility class for common functionalities:
+
+// SeleniumUtils.java
+package utils;
+
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+
+public class SeleniumUtils {
+    private WebDriver driver;
+
+    public SeleniumUtils(WebDriver driver) {
+        this.driver = driver;
+    }
+
+    public void navigateTo(String url) {
+        driver.get(url);
+    }
+
+    public WebElement findElement(By locator) {
+        return driver.findElement(locator);
+    }
+
+    public void click(By locator) {
+        findElement(locator).click();
+    }
+
+    public void type(By locator, String text) {
+        findElement(locator).sendKeys(text);
+    }
+
+    // Add more utility methods as needed
+}
+========================================================
+// SampleTest.java
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
+import org.testng.annotations.AfterTest;
+import org.testng.annotations.BeforeTest;
+import org.testng.annotations.Test;
+import utils.DriverManager;
+import utils.SeleniumUtils;
+
+public class SampleTest {
+    private WebDriver driver;
+    private SeleniumUtils seleniumUtils;
+
+    @BeforeTest
+    public void setUp() {
+        driver = DriverManager.getDriver();
+        seleniumUtils = new SeleniumUtils(driver);
+    }
+
+    @Test
+    public void testSample() {
+        seleniumUtils.navigateTo("https://example.com");
+        seleniumUtils.click(By.linkText("Login"));
+        seleniumUtils.type(By.id("username"), "user");
+        seleniumUtils.type(By.id("password"), "password");
+        seleniumUtils.click(By.id("login-btn"));
+        // Add assertions or further steps after login
+    }
+
+    @AfterTest
+    public void tearDown() {
+        DriverManager.quitDriver();
+    }
+}
+=======================================================
+// SeleniumUtils.java
+package utils;
+
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+
+public class SeleniumUtils {
+    private WebDriver driver;
+
+    public SeleniumUtils(WebDriver driver) {
+        this.driver = driver;
+    }
+
+    public void navigateTo(String url) {
+        driver.get(url);
+    }
+
+    public WebElement findElement(By locator) {
+        return driver.findElement(locator);
+    }
+
+    public void click(By locator) {
+        findElement(locator).click();
+    }
+
+    public void type(By locator, String text) {
+        findElement(locator).sendKeys(text);
+    }
+
+    public String getText(By locator) {
+        return findElement(locator).getText();
+    }
+
+    public void clear(By locator) {
+        findElement(locator).clear();
+    }
+
+    public boolean isDisplayed(By locator) {
+        return findElement(locator).isDisplayed();
+    }
+
+    public boolean isEnabled(By locator) {
+        return findElement(locator).isEnabled();
+    }
+
+    public boolean isSelected(By locator) {
+        return findElement(locator).isSelected();
+    }
+
+    public String getAttribute(By locator, String attribute) {
+        return findElement(locator).getAttribute(attribute);
+    }
+
+    // Add more utility methods as needed
+}
+
