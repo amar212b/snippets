@@ -350,3 +350,96 @@ Use code with caution.
 This method scrolls the page until the specified element is brought into view.
 
 Remember to adapt these methods and add more as required based on your specific testing needs. By incorporating these functionalities, you can create a more versatile and robust ElementUtil.java class for your Selenium framework.
+=========================================================================================================================
+The DriverManager.java class can be enhanced to retrieve browser and execution mode information from a properties file. Here's an improved version along with sample property file configurations for different cases:
+
+1. DriverManager.java (Updated):
+
+Java
+package com.yourcompany.framework;
+
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.remote.DesiredCapabilities;
+import org.openqa.selenium.remote.RemoteWebDriver;
+
+import java.io.IOException;
+import java.net.URL;
+import java.util.Properties;
+import java.util.concurrent.TimeUnit;
+
+public class DriverManager {
+
+    private static WebDriver driver;
+
+    public static WebDriver getDriver() throws Exception {
+        if (driver == null) {
+            // Load properties
+            Properties prop = PropertyReader.getProperties();
+
+            String browserType = prop.getProperty("browser");
+            String executionMode = prop.getProperty("executionMode");
+
+            if (executionMode.equalsIgnoreCase("remote")) {
+                String gridUrl = prop.getProperty("gridUrl");
+                DesiredCapabilities cap = new DesiredCapabilities();
+                cap.setCapability("browserName", browserType);
+                // Add other capabilities based on provider (BrowserStack, Sauce Labs, etc.)
+
+                // Use RemoteWebDriver for remote execution
+                driver = new RemoteWebDriver(new URL(gridUrl), cap);
+            } else {
+                // Use LocalWebDriver based on browser type
+                driver = getLocalDriver(browserType);
+            }
+            driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
+        }
+        return driver;
+    }
+
+    private static WebDriver getLocalDriver(String browserType) {
+        switch (browserType.toLowerCase()) {
+            case "chrome":
+                System.setProperty("webdriver.chrome.driver", "path/to/chromedriver");
+                return new ChromeDriver();
+            case "firefox":
+                System.setProperty("webdriver.gecko.driver", "path/to/geckodriver");
+                return new FirefoxDriver();
+            default:
+                throw new IllegalArgumentException("Unsupported browser type: " + browserType);
+        }
+    }
+}
+Use code with caution.
+2. Sample Properties Files:
+
+a) Local Execution:
+
+Properties
+# Local execution configuration
+browser=chrome  # Specify desired browser (e.g., chrome, firefox)
+executionMode=local  # Set execution mode to local
+Use code with caution.
+b) Remote Execution (Grid):
+
+Properties
+# Remote execution configuration (using a Selenium Grid)
+browser=chrome  # Specify desired browser
+executionMode=remote
+gridUrl=http://localhost:4444/wd/hub  # Replace with your Grid URL
+
+# Additional capabilities for remote providers (if needed)
+# browserstack.username=your_username
+# browserstack.access_key=your_access_key
+Use code with caution.
+Explanation:
+
+The getProperties() method in a separate PropertyReader class (not shown here) can be used to load the properties file.
+The code retrieves the browser and executionMode properties from the file.
+Based on executionMode:
+For local, the appropriate local WebDriver instance is created.
+For remote, a RemoteWebDriver is created using the provided gridUrl and desired capabilities (can be extended for specific providers).
+Note:
+
+Remember to replace placeholders like path/to/chromedriver and Grid URL with your actual values.
+You might need to add additional capabilities specific to remote providers like BrowserStack or Sauce Labs.
+By incorporating this approach, you can configure your test execution environment (local or remote) and browser selection dynamically based on the properties file settings. This improves flexibility and reusability of your framework.
